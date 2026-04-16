@@ -1,9 +1,103 @@
 <<<<<<< HEAD
-# Vue 3 + Vite
+AI智能对话系统 README
+AI 智能对话系统
+基于阿里云千问 API 实现的全栈智能对话系统，采用前后端分离架构，已完成线上部署，可直接访问使用。
+项目简介
+本项目依托阿里云千问大模型 API提供核心智能对话能力，前端分为 Vue3 主对话页面、React 后台管理系统双端，后端采用高性能 FastAPI 框架搭建，实现智能多轮对话、对话管理、用户管控、系统配置等完整功能，整体架构清晰、部署便捷，支持二次开发与功能扩展。
+核心功能
+主对话端（Vue3）
+- 智能对话交互：对接千问 API，支持上下文关联多轮对话，流式响应实时输出
+- 会话管理：对话历史记录、会话新建 / 删除 / 编辑，数据持久化存储
+- 角色适配：支持自定义对话角色，灵活适配不同对话场景
+- 响应式设计：兼容 PC 端、移动端访问，交互体验流畅
+- 个人中心：用户信息管理、对话数据查看
+后台管理系统（React）
+- 用户管理：用户账号增删改查、权限分配、状态管控
+- 对话数据管理：查看全量用户对话记录、数据统计与筛选
+- 系统配置：千问 API 参数配置、模型切换、接口限流设置
+- 日志管理：用户操作日志、AI 接口调用日志查询与导出
+- 数据看板：核心业务数据可视化展示
+后端服务（FastAPI）
+- 千问 API 封装：统一对接阿里云千问接口，实现对话请求、参数调优、异常处理
+- 接口鉴权：Token 身份验证，保障接口访问安全
+- 数据存储：MySQL 存储用户、对话、配置等业务数据
+- 缓存优化：Redis 提升接口响应速度，优化会话管理
+- 自动接口文档：内置 Swagger 接口文档，方便调试与对接
+技术栈
+前端
+- 主对话系统：Vue3 + Vite + Element Plus + Pinia + Axios
+- 后台管理系统：React18 + Ant Design + TypeScript + Axios
+- 构建与规范：ESLint + Prettier
+后端
+- 核心框架：FastAPI
+- AI 服务：阿里云千问 API
+- 数据库：MySQL + Redis
+- 部署方式：Docker 容器化部署 + Nginx 反向代理
+版本控制
+- Git 分支管理：main（主分支）、frontend（前端分支）、backend（后端分支）
+线上访问地址
+- 主对话系统（Vue3）：https://[填写你的线上域名]
+- 后台管理系统（React）：https://[填写你的线上域名]/admin
+- 后端 API 文档：https://[填写你的线上域名]/api/docs
+本地开发部署
+环境要求
+- Node.js ≥ 16.0
+- Python ≥ 3.10
+- MySQL 8.0+
+- Redis 5.0+
+- 阿里云千问 API 密钥
+后端启动
+1. 克隆项目，进入后端目录
+cd backend-fastapi
+2. 安装依赖
+pip install -r requirements.txt
+3. 配置环境变量
+新建.env文件，配置数据库、Redis、千问 API 密钥
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=你的数据库密码
+DB_NAME=ai_chat
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+# Redis配置
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
-=======
-# go-admin
+# 阿里云千问API配置
+DASHSCOPE_API_KEY=你的千问API密钥
+MODEL_NAME=qwen-turbo
+4. 初始化数据库，启动服务
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+Vue3 主对话端启动
+1. 进入前端目录
+cd frontend-vue
+2. 安装依赖
+npm install
+3. 配置后端接口地址，启动项目
+npm run dev
+React 后台管理端启动
+1. 进入管理后台目录
+cd frontend-react
+2. 安装依赖
+npm install
+3. 启动项目
+npm run dev
+项目目录结构
+ai-chat-system/
+├── frontend-vue/        # Vue3主对话前端
+├── frontend-react/      # React后台管理前端
+├── backend-fastapi/     # FastAPI后端服务
+├── docker/              # 部署配置文件
+└── README.md
+功能说明
+1. 对话功能：用户输入问题，后端转发请求至千问 API，实时返回对话结果
+2. 管理后台：管理员可通过后台系统，全面管控用户、对话、系统配置
+3. 数据安全：全接口鉴权，用户数据加密存储，保障信息安全
+4. 部署运维：支持 Docker 一键部署，适配云服务器线上运行
+注意事项
+1. 需提前申请阿里云千问 API，获取有效 API 密钥
+2. 线上部署需配置跨域、域名解析、SSL 证书
+3. 定期备份数据库数据，保障数据安全
+4. 可根据需求调整千问模型参数，优化对话效果
 >>>>>>> 193ae61db517c45b14f38a814c792ff88b85487e
