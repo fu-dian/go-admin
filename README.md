@@ -36,9 +36,8 @@ AI 智能对话系统
 版本控制
 - Git 分支管理：main（主分支）、frontend（前端分支）、backend（后端分支）
 线上访问地址
-- 主对话系统（Vue3）：https://[填写你的线上域名]
-- 后台管理系统（React）：https://[填写你的线上域名]/admin
-- 后端 API 文档：https://[填写你的线上域名]/api/docs
+- 主对话系统（Vue3）：http://47.114.110.200
+- 后台管理系统（React）：http://47.114.110.200/admin
 本地开发部署
 环境要求
 - Node.js ≥ 16.0
@@ -53,20 +52,6 @@ cd backend-fastapi
 pip install -r requirements.txt
 3. 配置环境变量
 新建.env文件，配置数据库、Redis、千问 API 密钥
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=你的数据库密码
-DB_NAME=ai_chat
-
-# Redis配置
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# 阿里云千问API配置
-DASHSCOPE_API_KEY=你的千问API密钥
-MODEL_NAME=qwen-turbo
 4. 初始化数据库，启动服务
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 Vue3 主对话端启动
@@ -84,20 +69,9 @@ npm install
 3. 启动项目
 npm run dev
 项目目录结构
-ai-chat-system/
-├── frontend-vue/        # Vue3主对话前端
-├── frontend-react/      # React后台管理前端
-├── backend-fastapi/     # FastAPI后端服务
-├── docker/              # 部署配置文件
-└── README.md
 功能说明
 1. 对话功能：用户输入问题，后端转发请求至千问 API，实时返回对话结果
 2. 管理后台：管理员可通过后台系统，全面管控用户、对话、系统配置
 3. 数据安全：全接口鉴权，用户数据加密存储，保障信息安全
 4. 部署运维：支持 Docker 一键部署，适配云服务器线上运行
-注意事项
-1. 需提前申请阿里云千问 API，获取有效 API 密钥
-2. 线上部署需配置跨域、域名解析、SSL 证书
-3. 定期备份数据库数据，保障数据安全
-4. 可根据需求调整千问模型参数，优化对话效果
 >>>>>>> 193ae61db517c45b14f38a814c792ff88b85487e
