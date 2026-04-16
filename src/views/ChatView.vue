@@ -20,7 +20,7 @@
       <div class="history-panel">
         <div class="history-header">
           <h3 style="color: black;">历史记录</h3>
-          <button class="clear-history-button" @click="clearHistory">清空</button>
+          <button class="clear-history-button" @click="showClearConfirmModal = true">清空</button>
         </div>
         <div class="history-list">
           <div v-for="(item, index) in history" :key="index" class="history-item" @click="loadHistory(item)">
@@ -34,19 +34,28 @@
 
       <!-- 聊天区域 -->
       <div class="chat-main">
-        <div class="chat-messages">
+        <div class="chat-messages" ref="chatMessages">
           <div v-for="(msg, index) in messages" :key="index" class="message-item">
             <div :class="msg.role === 'user' ? 'user-msg' : 'assistant-msg'">
-              <div class="message-role">{{ msg.role === 'user' ? '我' : 'AI' }}</div>
-              <div v-html="marked.parse(msg.content)"></div>
+              <div class="message-role">{{ msg.role === 'user' ? '我' : '小浮' }}</div>
+              <div v-html="msg.content"></div>
             </div>
           </div>
           <div v-if="loading" class="loading">正在思考...</div>
         </div>
 
+        >
+
+        <div class="deep-button-area">
+          <button class="deep-button" @click="sendDeepMessage">深度搜索</button>
+          <button class="deep-button" @click="triggerFileUpload">上传文件</button>
+          <input type="file" ref="fileInput" style="display: none" @change="handleFileUpload">
+        </div>
         <div class="input-area">
           <textarea v-model="inputText" @keydown.enter.exact="sendMessage" @keydown.enter.shift="inputText += '\n'"
             placeholder="请输入您的问题..."></textarea>
+          <button class="add-button" @click="triggerImageUpload">+</button>
+          <input type="file" ref="imageInput" style="display: none" @change="handleImageUpload" accept="image/*">
         </div>
       </div>
     </div>
@@ -119,6 +128,25 @@
         </div>
       </div>
     </div>
+
+    <!-- 清空确认弹窗 -->
+    <div v-if="showClearConfirmModal" class="modal-overlay" @click="showClearConfirmModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>确认清空</h2>
+          <button class="close-button" @click="showClearConfirmModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="color: #666; font-size: 16px; text-align: center; margin-bottom: 30px;">
+            确定要清空所有历史记录吗？此操作不可恢复。
+          </p>
+          <div class="form-actions">
+            <button type="button" class="cancel-button" @click="showClearConfirmModal = false">取消</button>
+            <button type="button" class="confirm-button" @click="confirmClearHistory">确认清空</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -134,7 +162,7 @@ const route = useRoute()
 const messages = ref([
   {
     role: 'assistant',
-    content: '你好！我是AI助手，有什么可以帮助你的吗？'
+    content: '你好！我是AI助手小浮，有什么可以帮助你的吗？'
   }
 ])
 const inputText = ref('')
@@ -143,6 +171,7 @@ const loading = ref(false)
 // 登录相关状态
 const showLoginModal = ref(false)
 const showRegisterModal = ref(false)
+const showClearConfirmModal = ref(false)
 const isLoggedIn = ref(false)
 const username = ref('')
 const userRole = ref('user')
@@ -223,7 +252,7 @@ const saveToHistory = (question: string, answer: string) => {
   history.value.unshift(newHistoryItem)
 
   // 限制历史记录数量
-  if (history.value.length > 20) {
+  if (history.value.length > 10) {
     history.value = history.value.slice(0, 20)
   }
 
@@ -260,6 +289,12 @@ const deleteHistory = (index: number) => {
 const clearHistory = () => {
   history.value = []
   saveHistoryToLocalStorage()
+  showClearConfirmModal.value = false
+}
+
+// 确认清空历史记录
+const confirmClearHistory = () => {
+  clearHistory()
 }
 
 // 格式化时间
@@ -413,6 +448,146 @@ const logout = () => {
   })
 }
 
+// 文件上传相关
+const fileInput = ref<HTMLInputElement | null>(null)
+const imageInput = ref<HTMLInputElement | null>(null)
+const chatMessages = ref<HTMLElement | null>(null)
+
+const triggerFileUpload = () => {
+  fileInput.value?.click()
+}
+
+const triggerImageUpload = () => {
+  imageInput.value?.click()
+}
+
+// 自动滚动到最新消息
+const scrollToBottom = () => {
+  setTimeout(() => {
+    chatMessages.value?.scrollTo({
+      top: chatMessages.value.scrollHeight,
+      behavior: 'smooth'
+    })
+  }, 100)
+}
+
+const handleFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    const file = target.files[0]
+    loading.value = true
+    
+    try {
+      // 创建FormData对象
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      // 上传文件到后端
+      const response = await fetch('/api/v1/files/upload', {
+        method: 'POST',
+        body: formData
+      })
+      if (!response.ok) {
+        throw new Error('文件上传失败')
+        
+      }
+      
+      const result = await response.json()
+      console.log('上传文件:', file.name)
+      // 显示上传成功消息
+      messages.value.push({
+        role: 'assistant',
+        content: `文件 ${file.name} 上传成功！`
+      })
+    } catch (error) {
+      console.error('文件上传失败:', error)
+      messages.value.push({
+        role: 'assistant',
+        content: '文件上传失败，请稍后再试。'
+      })
+    } finally {
+      loading.value = false
+      // 清空文件输入
+      target.value = ''
+    }
+  }
+}
+
+const handleImageUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    const file = target.files[0]
+    loading.value = true
+    
+    try {
+      // 先上传图片到服务器获取URL
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const uploadResponse = await fetch('/api/v1/files/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!uploadResponse.ok) {
+        throw new Error('图片上传失败')
+      }
+      
+      // 这里简化处理，使用图片的DataURL作为URL
+      const reader = new FileReader()
+      const imageUrl = await new Promise<string>((resolve) => {
+        reader.onload = (e) => {
+          resolve(e.target?.result as string)
+        }
+        reader.readAsDataURL(file)
+      })
+      
+      // 调用图片识别接口
+      const recognitionResponse = await fetch('/api/v1/agent/image-recognition', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          prompt: '这是什么'
+        })
+      })
+      
+      if (!recognitionResponse.ok) {
+        throw new Error('图片识别失败')
+      }
+      
+      const recognitionResult = await recognitionResponse.json()
+      console.log('图片识别结果:', recognitionResult)
+      
+      // 显示图片和识别结果
+      messages.value.push({
+        role: 'user',
+        content: `<img src="${imageUrl}" style="max-width: 100%; max-height: 300px; border-radius: 8px;" alt="上传的图片">`
+      })
+      
+      messages.value.push({
+        role: 'assistant',
+        content: recognitionResult.data.content
+      })
+      
+      // 滚动到最新消息
+      scrollToBottom()
+    } catch (error) {
+      console.error('图片处理失败:', error)
+      messages.value.push({
+        role: 'assistant',
+        content: '图片处理失败，请稍后再试。'
+      })
+    } finally {
+      loading.value = false
+      // 清空文件输入
+      target.value = ''
+    }
+  }
+}
+
 const sendMessage = async () => {
   if (!inputText.value.trim() || loading.value) return
 
@@ -421,6 +596,8 @@ const sendMessage = async () => {
     role: 'user',
     content: inputText.value
   })
+  // 滚动到最新消息
+  scrollToBottom()
 
   const userInput = inputText.value
   inputText.value = ''
@@ -435,7 +612,7 @@ const sendMessage = async () => {
 
   try {
     // 调用后端API（流式）
-    const response = await fetch('http://localhost:8080/api/v1/agent/chat', {
+    const response = await fetch('/api/v1/agent/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -449,7 +626,7 @@ const sendMessage = async () => {
         ]
       })
     })
-
+    console.log(response)
     if (!response.ok) {
       throw new Error('API调用失败')
     }
@@ -479,6 +656,8 @@ const sendMessage = async () => {
           try {
             // 直接添加内容
             messages.value[aiMessageIndex].content += data
+            // 滚动到最新消息
+            scrollToBottom()
           } catch (error) {
             console.error('解析流式数据失败:', error)
           }
@@ -491,6 +670,65 @@ const sendMessage = async () => {
   } catch (error) {
     console.error('Error:', error)
     messages.value[aiMessageIndex].content = '抱歉，我暂时无法回答您的问题，请稍后再试。'
+    // 滚动到最新消息
+    scrollToBottom()
+  } finally {
+    loading.value = false
+  }
+}
+
+const sendDeepMessage = async () => {
+  if (!inputText.value.trim() || loading.value) return
+
+  // 添加用户消息
+  messages.value.push({
+    role: 'user',
+    content: inputText.value
+  })
+  // 滚动到最新消息
+  scrollToBottom()
+
+  const userInput = inputText.value
+  inputText.value = ''
+  loading.value = true
+
+  // 创建AI消息占位符
+  const aiMessageIndex = messages.value.length
+  messages.value.push({
+    role: 'assistant',
+    content: '正在进行深度搜索，请稍候...'
+  })
+  // 滚动到最新消息
+  scrollToBottom()
+
+  try {
+    // 调用后端API（深度搜索）
+    const response = await fetch('/api/v1/agent/deep', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: userInput
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('API调用失败')
+    }
+
+    const data = await response.json()
+    messages.value[aiMessageIndex].content = data.content
+    // 滚动到最新消息
+    scrollToBottom()
+
+    // 保存到历史记录
+    saveToHistory(userInput, messages.value[aiMessageIndex].content)
+  } catch (error) {
+    console.error('Error:', error)
+    messages.value[aiMessageIndex].content = '抱歉，深度搜索失败，请稍后再试。'
+    // 滚动到最新消息
+    scrollToBottom()
   } finally {
     loading.value = false
   }
@@ -624,7 +862,40 @@ const sendMessage = async () => {
   overflow: hidden;
 }
 
+/* 移动端历史记录面板适配 */
+@media (max-width: 768px) {
+  .chat-content {
+    flex-direction: column;
+  }
+  .history-panel {
+    width: 100%;
+    height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .chat-header {
+    padding: 15px 10px;
+  }
+  .header-actions {
+    gap: 10px;
+  }
+  .login-button,
+  .register-button,
+  .logout-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .user-info {
+    font-size: 12px;
+  }
+  .back-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
 .history-header {
+  /* height: 50px; */
   padding: 15px 20px;
   background: white;
   border-bottom: 1px solid #e0e0e0;
@@ -641,6 +912,7 @@ const sendMessage = async () => {
 }
 
 .clear-history-button {
+  height: 40px;
   padding: 4px 12px;
   font-weight: 500;
   background: #f5f5f5;
@@ -675,7 +947,6 @@ const sendMessage = async () => {
 }
 
 .history-item:hover {
-  background: #e8e8e8;
   transform: translateY(-2px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -698,6 +969,7 @@ const sendMessage = async () => {
 }
 
 .delete-history-button {
+  padding: 0px 0px;
   position: absolute;
   top: 8px;
   right: 8px;
@@ -705,8 +977,8 @@ const sendMessage = async () => {
   color: #999;
   border: none;
   border-radius: 5px;
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -716,8 +988,7 @@ const sendMessage = async () => {
 }
 
 .delete-history-button:hover {
-  background: #ff4d4d;
-  color: white;
+  background: #e0e0e0;
 }
 
 .empty-history {
@@ -885,6 +1156,43 @@ const sendMessage = async () => {
   text-decoration: underline;
 }
 
+.cancel-button {
+  width: 48%;
+  padding: 12px;
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.confirm-button {
+  width: 48%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.confirm-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
 .chat-header h1 {
   margin: 0;
   font-size: 28px;
@@ -914,6 +1222,13 @@ const sendMessage = async () => {
   overflow-y: auto;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
+}
+
+/* 移动端聊天消息区域适配 */
+@media (max-width: 768px) {
+  .chat-messages {
+    padding: 20px 10px;
+  }
 }
 
 .message-item {
@@ -968,19 +1283,95 @@ const sendMessage = async () => {
   color: rgba(255, 255, 255, 0.8);
   text-align: right;
 }
-
-.input-area {
-  padding: 20px 120px;
+.deep-button-area {
   margin: 0 60px;
-  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 120px;
+  display: flex;
+  gap: 15px;
+}
+.deep-button {
+  background: white;
+  color: black;
+  width: 100px;
+  font-size: 14px;
+  padding: 0;
+  font-weight: 600;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .deep-button-area {
+    margin: 0 20px;
+    padding: 10px;
+    justify-content: center;
+  }
+  .deep-button {
+    width: 25vw;
+    height: 40px;
+    font-size: 12px;
+  }
+}
+.input-area {
+  padding: 0px 120px;
+  margin: 0 60px;
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;
   gap: 15px;
   align-items: flex-end;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   border-radius: 12px;
   margin-bottom: 20px;
+  position: relative;
+}
+
+textarea {
+  flex: 1;
+  height: 100px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  resize: none;
+  font-size: 16px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  padding-right: 50px;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.add-button {
+  position: absolute;
+  right: 136px;
+  bottom: 28px;
+  background: none;
+  color: black;
+  border: none;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  transition: none;
+  z-index: 1;
+}
+
+.add-button:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 移动端输入区域适配 */
+@media (max-width: 768px) {
+  .input-area {
+    padding: 10px;
+    margin: 0 20px;
+  }
 }
 
 textarea {
